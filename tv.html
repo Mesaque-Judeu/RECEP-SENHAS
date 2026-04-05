@@ -2,54 +2,97 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Painel TV</title>
+<title>Painel da TV</title>
 
 <style>
+/* ===== GERAL ===== */
 body{
   margin:0;
+  height:100vh;
+  font-family: Arial, sans-serif;
   background: radial-gradient(circle at top,#1b2d45,#050b14);
   color:white;
-  font-family:Arial, sans-serif;
   text-align:center;
 }
-header{padding:30px;}
 
-.card{
-  margin:30px auto;
-  width:420px;
-  background:#2563eb;
-  border-radius:12px;
-  padding:40px 20px;
+header{
+  padding:25px;
 }
 
-.tipo{font-size:22px;}
-.senha{font-size:110px;font-weight:bold;}
-.guiche{font-size:26px;}
+header h1{
+  margin:0;
+}
+
+header small{
+  opacity:0.7;
+}
+
+/* ===== CARD PRINCIPAL ===== */
+.card-principal{
+  margin: 10px auto 30px auto;
+  width: 460px;
+  border-radius:16px;
+  padding:40px 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.6);
+}
+
+.tipo{
+  font-size:26px;
+  margin-bottom:10px;
+}
+
+.senha{
+  font-size:140px;
+  font-weight:bold;
+}
+
+.guiche{
+  font-size:34px;
+  margin-top:10px;
+}
+
 .hora{
   background:white;
-  color:#333;
+  color:#111;
   padding:10px;
+  border-radius:10px;
   margin-top:20px;
-  border-radius:0 0 12px 12px;
+  font-weight:bold;
 }
 
+/* ===== HISTÓRICO ===== */
 .historico{
   display:flex;
   justify-content:center;
-  gap:15px;
+  gap:20px;
   margin-top:40px;
 }
 
 .hist-card{
-  background:white;
-  color:#000;
-  width:160px;
-  padding:15px;
-  border-radius:8px;
+  width:210px;
+  padding:20px;
+  border-radius:12px;
+  font-size:18px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.35);
 }
+
 .hist-num{
-  font-size:32px;
+  font-size:46px;
   font-weight:bold;
+  margin:10px 0;
+}
+
+/* ===== CORES POR TIPO ===== */
+.prioridade{
+  background:#dc2626;
+}
+
+.exames{
+  background:#2563eb;
+}
+
+.resultados{
+  background:#16a34a;
 }
 </style>
 </head>
@@ -61,19 +104,24 @@ header{padding:30px;}
   <small>Sistema de Atendimento</small>
 </header>
 
-<div class="card">
+<!-- SENHA ATUAL -->
+<div id="cardPrincipal" class="card-principal exames">
   <div class="tipo" id="tipo">---</div>
   <div class="senha" id="senha">000</div>
   <div class="guiche" id="guiche">---</div>
   <div class="hora" id="hora">--:--</div>
 </div>
 
+<!-- HISTÓRICO -->
 <div class="historico" id="historico"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+/* ===== FIREBASE ===== */
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+
 import { getDatabase, ref, onValue }
-from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB_IhJWewS_qlOqUcwli3Mf04wC6D3wn5Q",
@@ -86,14 +134,22 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db  = getDatabase(app);
 
 const senhaRef = ref(db,"senhaAtual");
 const histRef  = ref(db,"historico");
 
-// senha atual
+/* ===== FUNÇÃO DE COR ===== */
+function classePorTipo(tipo){
+  return tipo === "Prioridade" ? "prioridade" :
+         tipo === "Resultados" ? "resultados" :
+         "exames";
+}
+
+/* ===== SENHA ATUAL ===== */
 onValue(senhaRef, snap=>{
   if(!snap.exists()) return;
+
   const d = snap.val();
 
   tipo.innerText   = d.tipo;
@@ -101,24 +157,32 @@ onValue(senhaRef, snap=>{
   guiche.innerText = d.guiche;
   hora.innerText   = "Chamada às " + d.hora;
 
+  cardPrincipal.className =
+    "card-principal " + classePorTipo(d.tipo);
+
   const voz = new SpeechSynthesisUtterance(
     `Senha ${d.numero}. ${d.tipo}. ${d.guiche}`
   );
-  voz.lang="pt-BR";
+  voz.lang = "pt-BR";
   speechSynthesis.speak(voz);
 });
 
-// histórico – últimos 5
+/* ===== HISTÓRICO ===== */
 onValue(histRef, snap=>{
-  historico.innerHTML="";
-  const dados = Object.values(snap.val()||{}).slice(-5).reverse();
+  historico.innerHTML = "";
+
+  const dados = Object.values(snap.val() || {})
+    .slice(-5)
+    .reverse();
 
   dados.forEach(d=>{
     historico.innerHTML += `
-      <div class="hist-card">
-        <small>${d.tipo}</small>
-        <div class="hist-num">${String(d.numero).padStart(3,"0")}</div>
-        <small>${d.guiche}</small><br>
+      <div class="hist-card ${classePorTipo(d.tipo)}">
+        <div>${d.tipo}</div>
+        <div class="hist-num">
+          ${String(d.numero).padStart(3,"0")}
+        </div>
+        <div>${d.guiche}</div>
         <small>${d.hora}</small>
       </div>
     `;
