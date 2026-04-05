@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Painel do Operador</title>
+
+<style>
+body{font-family:Arial;background:#f3f4f6;}
+.box{
+  max-width:400px;
+  margin:60px auto;
+  background:white;
+  padding:30px;
+  border-radius:10px;
+}
+select,input,button{
+  width:100%;
+  padding:12px;
+  margin-bottom:15px;
+}
+button{
+  background:#2563eb;
+  color:white;
+  border:none;
+  font-size:16px;
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+<h2>Painel do Operador</h2>
+
+<select id="tipo">
+ <option>Exames</option>
+ <option>Prioridade</option>
+ <option>Resultados</option>
+</select>
+
+<input type="number" id="numero" placeholder="Número da senha">
+
+<select id="guiche">
+ <option>Guichê 1</option>
+ <option>Guichê 2</option>
+ <option>Guichê 3</option>
+ <option>Guichê 4</option>
+ <option>Guichê 5</option>
+</select>
+
+<button onclick="chamar()">Chamar Senha</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, set, push }
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB_IhJWewS_qlOqUcwli3Mf04wC6D3wn5Q",
+  authDomain: "recep-senhas.firebaseapp.com",
+  databaseURL: "https://recep-senhas-default-rtdb.firebaseio.com",
+  projectId: "recep-senhas",
+  storageBucket: "recep-senhas.appspot.com",
+  messagingSenderId: "906681930470",
+  appId: "1:906681930470:web:2083f2455d4794eda42127"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const senhaRef = ref(db,"senhaAtual");
+const histRef = ref(db,"historico");
+
+window.chamar = ()=>{
+  const h = new Date().toLocaleTimeString("pt-BR");
+  const dados={
+    tipo:tipo.value,
+    numero:Number(numero.value),
+    guiche:guiche.value,
+    hora:h
+  };
+  set(senhaRef,dados);
+  push(histRef,dados);
+};
+</script>
+</body>
+</html>
+``

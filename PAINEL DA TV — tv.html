@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Painel TV</title>
+
+<style>
+body{
+  margin:0;
+  background: radial-gradient(circle at top,#1b2d45,#050b14);
+  color:white;
+  font-family:Arial, sans-serif;
+  text-align:center;
+}
+header{padding:30px;}
+.card{
+  margin:30px auto;
+  width:420px;
+  background:#2563eb;
+  border-radius:12px;
+  padding:40px 20px;
+}
+.tipo{font-size:22px;}
+.senha{font-size:110px;font-weight:bold;}
+.guiche{font-size:26px;}
+.hora{
+  background:white;
+  color:#333;
+  padding:10px;
+  margin-top:20px;
+  border-radius:0 0 12px 12px;
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>Chamada de Senhas</h1>
+  <small>Sistema de Atendimento</small>
+</header>
+
+<div class="card">
+  <div class="tipo" id="tipo">---</div>
+  <div class="senha" id="senha">000</div>
+  <div class="guiche" id="guiche">---</div>
+  <div class="hora" id="hora">--:--:--</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, onValue }
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB_IhJWewS_qlOqUcwli3Mf04wC6D3wn5Q",
+  authDomain: "recep-senhas.firebaseapp.com",
+  databaseURL: "https://recep-senhas-default-rtdb.firebaseio.com",
+  projectId: "recep-senhas",
+  storageBucket: "recep-senhas.appspot.com",
+  messagingSenderId: "906681930470",
+  appId: "1:906681930470:web:2083f2455d4794eda42127"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const senhaRef = ref(db,"senhaAtual");
+
+onValue(senhaRef, snap=>{
+  if(!snap.exists()) return;
+  const d = snap.val();
+  tipo.innerText = d.tipo;
+  senha.innerText = String(d.numero).padStart(3,"0");
+  guiche.innerText = d.guiche;
+  hora.innerText = "Chamada às " + d.hora;
+  const voz = new SpeechSynthesisUtterance(`Senha ${d.numero}. ${d.tipo}. ${d.guiche}`);
+  voz.lang="pt-BR";
+  speechSynthesis.speak(voz);
+});
+</script>
+</body>
+</html>
