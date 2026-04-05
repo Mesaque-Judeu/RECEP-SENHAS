@@ -41,24 +41,24 @@ header {
   color: #555;
 }
 
-button {
+a.btn {
+  display: block;
   width: 100%;
   padding: 14px;
   font-size: 16px;
   border-radius: 8px;
-  border: none;
-  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
   margin-top: 15px;
+  color: white;
 }
 
 .btn-operador {
   background: #2563eb;
-  color: white;
 }
 
 .btn-tv {
   background: #dc2626;
-  color: white;
 }
 </style>
 </head>
@@ -75,10 +75,21 @@ button {
   <div class="card">
     <h2>Painel do Operador</h2>
     <p>Chamadas e controle das senhas</p>
-    <button class="btn-operador"
-      onclick="window.location.href='operador.html'ass="card">
+    <a class="btn btn-operador" href="operador.html">
+      Acessar Painel do Operador
+    </a>
+  </div>
+
+  <div class="card">
     <h2>Painel da TV</h2>
     <p>Exibição das senhas em tempo real</p>
-    <button class="btn-tv"
-      onclick="window.location.href='tv.html</body>
+    <a class="btn btn-tv" href="tv.html">
+      Acessar Painel da TV
+    </a>
+  </div>
+
+</div>
+
+</body>
 </html>
+``
