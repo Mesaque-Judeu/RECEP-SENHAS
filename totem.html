@@ -40,9 +40,9 @@ button {
   cursor: pointer;
 }
 
-.prioridade { background: #dc2626; }
-.exames     { background: #2563eb; }
-.resultados { background: #16a34a; }
+.prioridade { background: #dc2626; color: white; }
+.exames     { background: #2563eb; color: white; }
+.resultados { background: #16a34a; color: white; }
 
 small {
   display: block;
@@ -69,11 +69,14 @@ small {
     RESULTADOS
   </button>
 
-  <small>Dirija-se à recepção e aguarde a chamada no painel</small>
+  <small>Aguarde a chamada no painel</small>
 </div>
 
-<!-- ✅ QZ TRAY (SCRIPT NORMAL, NÃO MODULE) -->
-<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js ✅ QZ CONFIGURAÇÃO CORRETA */
+<!-- ✅ QZ TRAY (script normal, fora de module) -->
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
+
+<script>
+/* ===== CONFIGURAÇÃO QZ TRAY (CORRETA) ===== */
 qz.security.setCertificatePromise(() => Promise.resolve(""));
 qz.security.setSignaturePromise(() => Promise.resolve(""));
 
@@ -83,7 +86,7 @@ let impressora = null;
 async function conectarQZ() {
   if (!qzConectado) {
     await qz.websocket.connect();
-    impressora = await qz.printers.find("EPSON TM-T20");
+    impressora = await qz.printers.find("TMT20X");
     qzConectado = true;
   }
 }
@@ -112,5 +115,45 @@ async function imprimir(tipo, numero, dataHora) {
 }
 </script>
 
-<!-- ✅ FIREBASE EM MODULE (SEPARADO) -->
+<!-- ✅ FIREBASE EM MODULE -->
 <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get, set }
+  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+/* FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyB_IhJWewS_qlOqUcwli3Mf04wC6D3wn5Q",
+  authDomain: "recep-senhas.firebaseapp.com",
+  databaseURL: "https://recep-senhas-default-rtdb.firebaseio.com",
+  projectId: "recep-senhas",
+  storageBucket: "recep-senhas.appspot.com",
+  messagingSenderId: "906681930470",
+  appId: "1:906681930470:web:2083f2455d4794eda42127"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+/* ✅ FUNÇÃO GLOBAL (ESSENCIAL) */
+window.retirarSenha = async (tipo) => {
+  try {
+    const contadorRef = ref(db, "contadores/" + tipo);
+    const snap = await get(contadorRef);
+
+    const numero = (snap.val() || 0) + 1;
+    await set(contadorRef, numero);
+
+    const dataHora = new Date().toLocaleString("pt-BR");
+
+    await imprimir(tipo, numero, dataHora);
+
+  } catch (erro) {
+    alert("Erro ao imprimir. Verifique se o QZ Tray está ativo.");
+    console.error(erro);
+  }
+};
+</script>
+
+</body>
+</html>
