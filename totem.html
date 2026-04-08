@@ -40,9 +40,9 @@ button {
   cursor: pointer;
 }
 
-.prioridade { background: #dc2626; color: white; }
-.exames     { background: #2563eb; color: white; }
-.resultados { background: #16a34a; color: white; }
+.prioridade { background: #dc2626; }
+.exames     { background: #2563eb; }
+.resultados { background: #16a34a; }
 
 small {
   display: block;
@@ -57,37 +57,26 @@ small {
 <div class="totem">
   <h1>RETIRE SUA SENHA</h1>
 
-  <button class="prioridade" onclick="retirarSenha('Prioridade')">
-    PRIORIDADE
-  </button>
+  <button id="btnPrioridade" class="prioridade">PRIORIDADE</button>
+  <button id="btnExames" class="exames">EXAMES</button>
+  <button id="btnResultados" class="resultados">RESULTADOS</button>
 
-  <button class="exames" onclick="retirarSenha('Exames')">
-    EXAMES
-  </button>
-
-  <button class="resultados" onclick="retirarSenha('Resultados')">
-    RESULTADOS
-  </button>
-
-  <small>Aguarde a chamada no painel</small>
+  <small>Dirija-se à recepção e aguarde a chamada no painel</small>
 </div>
 
-<!-- ✅ QZ TRAY (script normal, fora de module) -->
-<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
-
-<script>
-/* ===== CONFIGURAÇÃO QZ TRAY (CORRETA) ===== */
+<!-- QZ Tray -->
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js === QZ CONFIG === */
 qz.security.setCertificatePromise(() => Promise.resolve(""));
 qz.security.setSignaturePromise(() => Promise.resolve(""));
 
-let qzConectado = false;
+let conectado = false;
 let impressora = null;
 
 async function conectarQZ() {
-  if (!qzConectado) {
+  if (!conectado) {
     await qz.websocket.connect();
     impressora = await qz.printers.find("TMT20X");
-    qzConectado = true;
+    conectado = true;
   }
 }
 
@@ -95,7 +84,6 @@ async function imprimir(tipo, numero, dataHora) {
   await conectarQZ();
 
   const cfg = qz.configs.create(impressora);
-
   const dados = [
     '\x1B\x40',
     '\x1B\x61\x01',
@@ -115,11 +103,10 @@ async function imprimir(tipo, numero, dataHora) {
 }
 </script>
 
-<!-- ✅ FIREBASE EM MODULE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getDatabase, ref, get, set }
-  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 /* FIREBASE */
 const firebaseConfig = {
@@ -135,25 +122,28 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-/* ✅ FUNÇÃO GLOBAL (ESSENCIAL) */
-window.retirarSenha = async (tipo) => {
-  try {
-    const contadorRef = ref(db, "contadores/" + tipo);
-    const snap = await get(contadorRef);
+async function retirarSenha(tipo) {
+  const contadorRef = ref(db, "contadores/" + tipo);
+  const snap = await get(contadorRef);
+  const numero = (snap.val() || 0) + 1;
 
-    const numero = (snap.val() || 0) + 1;
-    await set(contadorRef, numero);
+  await set(contadorRef, numero);
 
-    const dataHora = new Date().toLocaleString("pt-BR");
+  const dataHora = new Date().toLocaleString("pt-BR");
+  await imprimir(tipo, numero, dataHora);
+}
 
-    await imprimir(tipo, numero, dataHora);
+/* ✅ ASSOCIA EVENTOS APÓS TUDO CARREGAR */
+document.getElementById("btnPrioridade")
+  .addEventListener("click", () => retirarSenha("Prioridade"));
 
-  } catch (erro) {
-    alert("Erro ao imprimir. Verifique se o QZ Tray está ativo.");
-    console.error(erro);
-  }
-};
+document.getElementById("btnExames")
+  .addEventListener("click", () => retirarSenha("Exames"));
+
+document.getElementById("btnResultados")
+  .addEventListener("click", () => retirarSenha("Resultados"));
 </script>
 
 </body>
 </html>
+``
