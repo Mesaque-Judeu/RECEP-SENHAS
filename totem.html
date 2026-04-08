@@ -72,92 +72,45 @@ small {
   <small>Dirija-se à recepção e aguarde a chamada no painel</small>
 </div>
 
-<!-- QZ TRAY -->
-<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, set } 
-from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-/* ========= FIREBASE ========= */
-const firebaseConfig = {
-  apiKey: "AIzaSyB_IhJWewS_qlOqUcwli3Mf04wC6D3wn5Q",
-  authDomain: "recep-senhas.firebaseapp.com",
-  databaseURL: "https://recep-senhas-default-rtdb.firebaseio.com",
-  projectId: "recep-senhas",
-  storageBucket: "recep-senhas.appspot.com",
-  messagingSenderId: "906681930470",
-  appId: "1:906681930470:web:2083f2455d4794eda42127"
-};
-
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
-
-/* ========= QZ TRAY CONFIG CORRETA ========= */
-
-// ✅ Certificado vazio (modo anônimo)
-qz.security.setCertificatePromise(resolve => resolve());
-
-// ✅ Assinatura compatível
+<!-- ✅ QZ TRAY (SCRIPT NORMAL, NÃO MODULE) -->
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js ✅ QZ CONFIGURAÇÃO CORRETA */
+qz.security.setCertificatePromise(() => Promise.resolve(""));
 qz.security.setSignaturePromise(() => Promise.resolve(""));
 
 let qzConectado = false;
-let impressoraPadrao = null;
+let impressora = null;
 
-/* ========= CONECTA UMA ÚNICA VEZ ========= */
 async function conectarQZ() {
   if (!qzConectado) {
     await qz.websocket.connect();
-    impressoraPadrao = await qz.printers.find("EPSON TM-T20");
+    impressora = await qz.printers.find("EPSON TM-T20");
     qzConectado = true;
   }
 }
 
-/* ========= RETIRAR SENHA ========= */
-window.retirarSenha = async (tipo) => {
+async function imprimir(tipo, numero, dataHora) {
+  await conectarQZ();
 
-  const contadorRef = ref(db, "contadores/" + tipo);
-  const snap = await get(contadorRef);
-  const proximo = (snap.val() || 0) + 1;
+  const cfg = qz.configs.create(impressora);
 
-  await set(contadorRef, proximo);
+  const dados = [
+    '\x1B\x40',
+    '\x1B\x61\x01',
+    '\x1B\x21\x30',
+    'CLÍNICA CENSO\n\n',
+    'SENHA\n',
+    tipo.toUpperCase() + '\n\n',
+    '\x1B\x21\x38',
+    String(numero).padStart(3,'0') + '\n\n',
+    '\x1B\x21\x00',
+    'Aguarde a chamada\n',
+    dataHora + '\n\n\n',
+    '\x1D\x56\x41'
+  ];
 
-  const agora = new Date().toLocaleString("pt-BR");
-
-  await imprimirSenha(tipo, proximo, agora);
-};
-
-/* ========= IMPRIMIR ========= */
-async function imprimirSenha(tipo, numero, dataHora) {
-  try {
-    await conectarQZ();
-
-    const cfg = qz.configs.create(impressoraPadrao);
-
-    const dados = [
-      '\x1B\x40',
-      '\x1B\x61\x01',
-      '\x1B\x21\x30',
-      'CLÍNICA CENSO\n\n',
-      'SENHA\n',
-      tipo.toUpperCase() + '\n\n',
-      '\x1B\x21\x38',
-      String(numero).padStart(3,'0') + '\n\n',
-      '\x1B\x21\x00',
-      'Aguarde a chamada\n',
-      dataHora + '\n\n\n',
-      '\x1D\x56\x41'
-    ];
-
-    await qz.print(cfg, dados);
-
-  } catch (err) {
-    console.error("Erro QZ:", err);
-    alert("Erro ao imprimir. Verifique se o QZ Tray está ativo.");
-  }
+  await qz.print(cfg, dados);
 }
 </script>
 
-</body>
-</html>
+<!-- ✅ FIREBASE EM MODULE (SEPARADO) -->
+<script type="module">
