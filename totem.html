@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Retire sua Senha</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.totem {
+  background: #020617;
+  padding: 40px;
+  border-radius: 16px;
+  width: 420px;
+  text-align: center;
+  box-shadow: 0 30px 60px rgba(0,0,0,.6);
+}
+
+h1 {
+  margin-bottom: 30px;
+}
+
+button {
+  width: 100%;
+  padding: 22px;
+  margin-bottom: 18px;
+  font-size: 22px;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.prioridade { background: #dc2626; color: white; }
+.exames     { background: #2563eb; color: white; }
+.resultados { background: #16a34a; color: white; }
+
+small {
+  display: block;
+  margin-top: 20px;
+  color: #94a3b8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="totem">
+  <h1>RETIRE SUA SENHA</h1>
+
+  <button class="prioridade" onclick="retirarSenha('Prioridade')">
+    PRIORIDADE
+  </button>
+
+  <button class="exames" onclick="retirarSenha('Exames')">
+    EXAMES
+  </button>
+
+  <button class="resultados" onclick="retirarSenha('Resultados')">
+    RESULTADOS
+  </button>
+
+  <small>Dirija-se à recepção e aguarde a chamada no painel</small>
+</div>
+
+<!-- QZ Tray -->
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
+
+<script type="module">
+/* ========= FIREBASE ========= */
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get, set }
+  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB_IhJWewS_qlOqUcwli3Mf04wC6D3wn5Q",
+  authDomain: "recep-senhas.firebaseapp.com",
+  databaseURL: "https://recep-senhas-default-rtdb.firebaseio.com",
+  projectId: "recep-senhas",
+  storageBucket: "recep-senhas.appspot.com",
+  messagingSenderId: "906681930470",
+  appId: "1:906681930470:web:2083f2455d4794eda42127"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+/* ========= QZ TRAY ========= */
+qz.security.setCertificatePromise((resolve) => {
+  resolve(); // uso local simples
+});
+
+qz.security.setSignaturePromise((toSign) => {
+  return Promise.resolve(null);
+});
+
+/* ========= FUNÇÃO PRINCIPAL ========= */
+window.retirarSenha = async (tipo) => {
+
+  const contadorRef = ref(db, "contadores/" + tipo);
+  const snap = await get(contadorRef);
+
+  const proximo = (snap.val() || 0) + 1;
+  await set(contadorRef, proximo);
+
+  const agora = new Date().toLocaleString("pt-BR");
+
+  imprimirSenha(tipo, proximo, agora);
+};
+
+/* ========= IMPRESSÃO ========= */
+function imprimirSenha(tipo, numero, dataHora) {
+
+  qz.websocket.connect()
+    .then(() => qz.printers.find("EPSON TM-T20"))
+    .then(printer => {
+
+      const cfg = qz.configs.create(printer);
+
+      const dados = [
+        '\x1B\x40',           // reset
+        '\x1B\x61\x01',       // centralizar
+        '\x1B\x21\x30',       // fonte grande
+        'CLÍNICA CENSO\n\n',
+        'SENHA\n',
+        tipo.toUpperCase() + '\n\n',
+        '\x1B\x21\x38',
+        String(numero).padStart(3,'0') + '\n\n',
+        '\x1B\x21\x00',
+        'Aguarde a chamada\n',
+        dataHora + '\n\n\n',
+        '\x1D\x56\x41'        // corte
+      ];
+
+      return qz.print(cfg, dados);
+    })
+    .catch(err => {
+      alert("Erro ao imprimir. Verifique a impressora.");
+      console.error(err);
+    });
+}
+</script>
+
+</body>
+</html>
+``
