@@ -40,9 +40,9 @@ button {
   cursor: pointer;
 }
 
-.prioridade { background: #dc2626; color: white; }
-.exames     { background: #2563eb; color: white; }
-.resultados { background: #16a34a; color: white; }
+.prioridade { background: #dc2626; }
+.exames     { background: #2563eb; }
+.resultados { background: #16a34a; }
 
 small {
   display: block;
@@ -72,16 +72,15 @@ small {
   <small>Dirija-se à recepção e aguarde a chamada no painel</small>
 </div>
 
-<!-- QZ Tray -->
+<!-- QZ TRAY -->
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
 
 <script type="module">
-/* ========= FIREBASE ========= */
-import { initializeApp }
-  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, set }
-  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get, set } 
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
+/* ========= FIREBASE ========= */
 const firebaseConfig = {
   apiKey: "AIzaSyB_IhJWewS_qlOqUcwli3Mf04wC6D3wn5Q",
   authDomain: "recep-senhas.firebaseapp.com",
@@ -95,62 +94,70 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-/* ========= QZ TRAY ========= */
-qz.security.setCertificatePromise((resolve) => {
-  resolve(); // uso local simples
-});
+/* ========= QZ TRAY CONFIG CORRETA ========= */
 
-qz.security.setSignaturePromise((toSign) => {
-  return Promise.resolve(null);
-});
+// ✅ Certificado vazio (modo anônimo)
+qz.security.setCertificatePromise(resolve => resolve());
 
-/* ========= FUNÇÃO PRINCIPAL ========= */
+// ✅ Assinatura compatível
+qz.security.setSignaturePromise(() => Promise.resolve(""));
+
+let qzConectado = false;
+let impressoraPadrao = null;
+
+/* ========= CONECTA UMA ÚNICA VEZ ========= */
+async function conectarQZ() {
+  if (!qzConectado) {
+    await qz.websocket.connect();
+    impressoraPadrao = await qz.printers.find("EPSON TM-T20");
+    qzConectado = true;
+  }
+}
+
+/* ========= RETIRAR SENHA ========= */
 window.retirarSenha = async (tipo) => {
 
   const contadorRef = ref(db, "contadores/" + tipo);
   const snap = await get(contadorRef);
-
   const proximo = (snap.val() || 0) + 1;
+
   await set(contadorRef, proximo);
 
   const agora = new Date().toLocaleString("pt-BR");
 
-  imprimirSenha(tipo, proximo, agora);
+  await imprimirSenha(tipo, proximo, agora);
 };
 
-/* ========= IMPRESSÃO ========= */
-function imprimirSenha(tipo, numero, dataHora) {
+/* ========= IMPRIMIR ========= */
+async function imprimirSenha(tipo, numero, dataHora) {
+  try {
+    await conectarQZ();
 
-  qz.websocket.connect()
-    .then(() => qz.printers.find("EPSON TM-T20"))
-    .then(printer => {
+    const cfg = qz.configs.create(impressoraPadrao);
 
-      const cfg = qz.configs.create(printer);
+    const dados = [
+      '\x1B\x40',
+      '\x1B\x61\x01',
+      '\x1B\x21\x30',
+      'CLÍNICA CENSO\n\n',
+      'SENHA\n',
+      tipo.toUpperCase() + '\n\n',
+      '\x1B\x21\x38',
+      String(numero).padStart(3,'0') + '\n\n',
+      '\x1B\x21\x00',
+      'Aguarde a chamada\n',
+      dataHora + '\n\n\n',
+      '\x1D\x56\x41'
+    ];
 
-      const dados = [
-        '\x1B\x40',           // reset
-        '\x1B\x61\x01',       // centralizar
-        '\x1B\x21\x30',       // fonte grande
-        'CLÍNICA CENSO\n\n',
-        'SENHA\n',
-        tipo.toUpperCase() + '\n\n',
-        '\x1B\x21\x38',
-        String(numero).padStart(3,'0') + '\n\n',
-        '\x1B\x21\x00',
-        'Aguarde a chamada\n',
-        dataHora + '\n\n\n',
-        '\x1D\x56\x41'        // corte
-      ];
+    await qz.print(cfg, dados);
 
-      return qz.print(cfg, dados);
-    })
-    .catch(err => {
-      alert("Erro ao imprimir. Verifique a impressora.");
-      console.error(err);
-    });
+  } catch (err) {
+    console.error("Erro QZ:", err);
+    alert("Erro ao imprimir. Verifique se o QZ Tray está ativo.");
+  }
 }
 </script>
 
 </body>
 </html>
-``
